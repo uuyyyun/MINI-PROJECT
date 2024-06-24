@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <style>
+        #map {
+            width: 706px;
+            height: 596px;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/proj4.js"></script>
+        <script src="js/proj4leaflet.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="data/AdministrasiKotaSurakarta_1.js"></script>
+        <script src="data/JalanSurakarta_2.js"></script>
+        <script src="data/TitikHotelSurakarta_3.js"></script>
+        <script src="data/CentroidsBuffertitikkotaasurakarta_5.js"></script>
+        <script src="data/PusatKota_6.js"></script>
+        <script src="data/Jalantercepat_7.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var crs = new L.Proj.CRS('EPSG:32749', '+proj=utm +zone=49 +south +datum=WGS84 +units=m +no_defs', {
+            resolutions: [2800, 1400, 700, 350, 175, 84, 42, 21, 11.2, 5.6, 2.8, 1.4, 0.7, 0.35, 0.14, 0.07],
+        });
+        var map = L.map('map', {
+            crs: crs,
+            continuousWorld: false,
+            worldCopyJump: false, 
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+            map.setMaxBounds(map.getBounds());
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 0.648,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        function pop_AdministrasiKotaSurakarta_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">KDPPUM</th>\
+                        <td class="visible-with-data" id="KDPPUM">' + (feature.properties['KDPPUM'] !== null ? autolinker.link(feature.properties['KDPPUM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">NAMOBJ</th>\
+                        <td class="visible-with-data" id="NAMOBJ">' + (feature.properties['NAMOBJ'] !== null ? autolinker.link(feature.properties['NAMOBJ'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">REMARK</th>\
+                        <td class="visible-with-data" id="REMARK">' + (feature.properties['REMARK'] !== null ? autolinker.link(feature.properties['REMARK'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDPBPS</th>\
+                        <td class="visible-with-data" id="KDPBPS">' + (feature.properties['KDPBPS'] !== null ? autolinker.link(feature.properties['KDPBPS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">FCODE</th>\
+                        <td class="visible-with-data" id="FCODE">' + (feature.properties['FCODE'] !== null ? autolinker.link(feature.properties['FCODE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LUASWH</th>\
+                        <td class="visible-with-data" id="LUASWH">' + (feature.properties['LUASWH'] !== null ? autolinker.link(feature.properties['LUASWH'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">UUPP</th>\
+                        <td class="visible-with-data" id="UUPP">' + (feature.properties['UUPP'] !== null ? autolinker.link(feature.properties['UUPP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SRS_ID</th>\
+                        <td class="visible-with-data" id="SRS_ID">' + (feature.properties['SRS_ID'] !== null ? autolinker.link(feature.properties['SRS_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LCODE</th>\
+                        <td class="visible-with-data" id="LCODE">' + (feature.properties['LCODE'] !== null ? autolinker.link(feature.properties['LCODE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">METADATA</th>\
+                        <td class="visible-with-data" id="METADATA">' + (feature.properties['METADATA'] !== null ? autolinker.link(feature.properties['METADATA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDEBPS</th>\
+                        <td class="visible-with-data" id="KDEBPS">' + (feature.properties['KDEBPS'] !== null ? autolinker.link(feature.properties['KDEBPS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDEPUM</th>\
+                        <td class="visible-with-data" id="KDEPUM">' + (feature.properties['KDEPUM'] !== null ? autolinker.link(feature.properties['KDEPUM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDCBPS</th>\
+                        <td class="visible-with-data" id="KDCBPS">' + (feature.properties['KDCBPS'] !== null ? autolinker.link(feature.properties['KDCBPS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDCPUM</th>\
+                        <td class="visible-with-data" id="KDCPUM">' + (feature.properties['KDCPUM'] !== null ? autolinker.link(feature.properties['KDCPUM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDBBPS</th>\
+                        <td class="visible-with-data" id="KDBBPS">' + (feature.properties['KDBBPS'] !== null ? autolinker.link(feature.properties['KDBBPS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KDBPUM</th>\
+                        <td class="visible-with-data" id="KDBPUM">' + (feature.properties['KDBPUM'] !== null ? autolinker.link(feature.properties['KDBPUM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WADMKD</th>\
+                        <td class="visible-with-data" id="WADMKD">' + (feature.properties['WADMKD'] !== null ? autolinker.link(feature.properties['WADMKD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WIADKD</th>\
+                        <td class="visible-with-data" id="WIADKD">' + (feature.properties['WIADKD'] !== null ? autolinker.link(feature.properties['WIADKD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WADMKC</th>\
+                        <td class="visible-with-data" id="WADMKC">' + (feature.properties['WADMKC'] !== null ? autolinker.link(feature.properties['WADMKC'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WIADKC</th>\
+                        <td class="visible-with-data" id="WIADKC">' + (feature.properties['WIADKC'] !== null ? autolinker.link(feature.properties['WIADKC'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WADMKK</th>\
+                        <td class="visible-with-data" id="WADMKK">' + (feature.properties['WADMKK'] !== null ? autolinker.link(feature.properties['WADMKK'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WIADKK</th>\
+                        <td class="visible-with-data" id="WIADKK">' + (feature.properties['WIADKK'] !== null ? autolinker.link(feature.properties['WIADKK'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WADMPR</th>\
+                        <td class="visible-with-data" id="WADMPR">' + (feature.properties['WADMPR'] !== null ? autolinker.link(feature.properties['WADMPR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WIADPR</th>\
+                        <td class="visible-with-data" id="WIADPR">' + (feature.properties['WIADPR'] !== null ? autolinker.link(feature.properties['WIADPR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">TIPADM</th>\
+                        <td class="visible-with-data" id="TIPADM">' + (feature.properties['TIPADM'] !== null ? autolinker.link(feature.properties['TIPADM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SHAPE_Leng</th>\
+                        <td class="visible-with-data" id="SHAPE_Leng">' + (feature.properties['SHAPE_Leng'] !== null ? autolinker.link(feature.properties['SHAPE_Leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SHAPE_Area</th>\
+                        <td class="visible-with-data" id="SHAPE_Area">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Points</th>\
+                        <td class="visible-with-data" id="Points">' + (feature.properties['Points'] !== null ? autolinker.link(feature.properties['Points'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_AdministrasiKotaSurakarta_1_0(feature) {
+            switch(String(feature.properties['WADMKC'])) {
+                case 'Banjarsari':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,245,240,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Colomadu':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,227,215,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Gondangrejo':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,212,194,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Grogol':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,197,175,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Jebres':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,179,152,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kartasura':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,152,121,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Pasar Kliwon':
+                    return {
+                pane: 'pane_AdministrasiKotaSurakarta_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(228,87,73,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_AdministrasiKotaSurakarta_1');
+        map.getPane('pane_AdministrasiKotaSurakarta_1').style.zIndex = 401;
+        map.getPane('pane_AdministrasiKotaSurakarta_1').style['mix-blend-mode'] = 'normal';
+        var layer_AdministrasiKotaSurakarta_1 = new L.geoJson(json_AdministrasiKotaSurakarta_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_AdministrasiKotaSurakarta_1',
+            layerName: 'layer_AdministrasiKotaSurakarta_1',
+            pane: 'pane_AdministrasiKotaSurakarta_1',
+            onEachFeature: pop_AdministrasiKotaSurakarta_1,
+            style: style_AdministrasiKotaSurakarta_1_0,
+        });
+        bounds_group.addLayer(layer_AdministrasiKotaSurakarta_1);
+        map.addLayer(layer_AdministrasiKotaSurakarta_1);
+        function pop_JalanSurakarta_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">NAMRJL</th>\
+                        <td class="visible-with-data" id="NAMRJL">' + (feature.properties['NAMRJL'] !== null ? autolinker.link(feature.properties['NAMRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KONRJL</th>\
+                        <td class="visible-with-data" id="KONRJL">' + (feature.properties['KONRJL'] !== null ? autolinker.link(feature.properties['KONRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MATRJL</th>\
+                        <td class="visible-with-data" id="MATRJL">' + (feature.properties['MATRJL'] !== null ? autolinker.link(feature.properties['MATRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">FGSRJL</th>\
+                        <td class="visible-with-data" id="FGSRJL">' + (feature.properties['FGSRJL'] !== null ? autolinker.link(feature.properties['FGSRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">UTKRJL</th>\
+                        <td class="visible-with-data" id="UTKRJL">' + (feature.properties['UTKRJL'] !== null ? autolinker.link(feature.properties['UTKRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">TOLRJL</th>\
+                        <td class="visible-with-data" id="TOLRJL">' + (feature.properties['TOLRJL'] !== null ? autolinker.link(feature.properties['TOLRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">WLYRJL</th>\
+                        <td class="visible-with-data" id="WLYRJL">' + (feature.properties['WLYRJL'] !== null ? autolinker.link(feature.properties['WLYRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">AUTRJL</th>\
+                        <td class="visible-with-data" id="AUTRJL">' + (feature.properties['AUTRJL'] !== null ? autolinker.link(feature.properties['AUTRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KLSRJL</th>\
+                        <td class="visible-with-data" id="KLSRJL">' + (feature.properties['KLSRJL'] !== null ? autolinker.link(feature.properties['KLSRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SPCRJL</th>\
+                        <td class="visible-with-data" id="SPCRJL">' + (feature.properties['SPCRJL'] !== null ? autolinker.link(feature.properties['SPCRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">JPARJL</th>\
+                        <td class="visible-with-data" id="JPARJL">' + (feature.properties['JPARJL'] !== null ? autolinker.link(feature.properties['JPARJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ARHRJL</th>\
+                        <td class="visible-with-data" id="ARHRJL">' + (feature.properties['ARHRJL'] !== null ? autolinker.link(feature.properties['ARHRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">STARJL</th>\
+                        <td class="visible-with-data" id="STARJL">' + (feature.properties['STARJL'] !== null ? autolinker.link(feature.properties['STARJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">KLLRJL</th>\
+                        <td class="visible-with-data" id="KLLRJL">' + (feature.properties['KLLRJL'] !== null ? autolinker.link(feature.properties['KLLRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MEDRJL</th>\
+                        <td class="visible-with-data" id="MEDRJL">' + (feature.properties['MEDRJL'] !== null ? autolinker.link(feature.properties['MEDRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LOCRJL</th>\
+                        <td class="visible-with-data" id="LOCRJL">' + (feature.properties['LOCRJL'] !== null ? autolinker.link(feature.properties['LOCRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">JARRJL</th>\
+                        <td class="visible-with-data" id="JARRJL">' + (feature.properties['JARRJL'] !== null ? autolinker.link(feature.properties['JARRJL'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">FCODE</th>\
+                        <td class="visible-with-data" id="FCODE">' + (feature.properties['FCODE'] !== null ? autolinker.link(feature.properties['FCODE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">REMARK</th>\
+                        <td class="visible-with-data" id="REMARK">' + (feature.properties['REMARK'] !== null ? autolinker.link(feature.properties['REMARK'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SRS_ID</th>\
+                        <td class="visible-with-data" id="SRS_ID">' + (feature.properties['SRS_ID'] !== null ? autolinker.link(feature.properties['SRS_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">LCODE</th>\
+                        <td class="visible-with-data" id="LCODE">' + (feature.properties['LCODE'] !== null ? autolinker.link(feature.properties['LCODE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">METADATA</th>\
+                        <td class="visible-with-data" id="METADATA">' + (feature.properties['METADATA'] !== null ? autolinker.link(feature.properties['METADATA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SHAPE_Leng</th>\
+                        <td class="visible-with-data" id="SHAPE_Leng">' + (feature.properties['SHAPE_Leng'] !== null ? autolinker.link(feature.properties['SHAPE_Leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Network Centrality_fid</th>\
+                        <td class="visible-with-data" id="Network Centrality_fid">' + (feature.properties['Network Centrality_fid'] !== null ? autolinker.link(feature.properties['Network Centrality_fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Network Centrality_cat</th>\
+                        <td class="visible-with-data" id="Network Centrality_cat">' + (feature.properties['Network Centrality_cat'] !== null ? autolinker.link(feature.properties['Network Centrality_cat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Network Centrality_closeness</th>\
+                        <td class="visible-with-data" id="Network Centrality_closeness">' + (feature.properties['Network Centrality_closeness'] !== null ? autolinker.link(feature.properties['Network Centrality_closeness'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Network Centrality_betweennes</th>\
+                        <td class="visible-with-data" id="Network Centrality_betweennes">' + (feature.properties['Network Centrality_betweennes'] !== null ? autolinker.link(feature.properties['Network Centrality_betweennes'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Network Centrality_eigenvecto</th>\
+                        <td class="visible-with-data" id="Network Centrality_eigenvecto">' + (feature.properties['Network Centrality_eigenvecto'] !== null ? autolinker.link(feature.properties['Network Centrality_eigenvecto'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_JalanSurakarta_2_0(feature) {
+            switch(String(feature.properties['REMARK'])) {
+                case 'Jalan Arteri':
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(215,25,28,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Jalan Kolektor':
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(59,15,111,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Jalan Lain':
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(13,7,7,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Jalan Lokal':
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(221,74,105,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Jalan Setapak':
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(13,7,7,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_JalanSurakarta_2',
+                opacity: 1,
+                color: 'rgba(13,7,7,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_JalanSurakarta_2');
+        map.getPane('pane_JalanSurakarta_2').style.zIndex = 402;
+        map.getPane('pane_JalanSurakarta_2').style['mix-blend-mode'] = 'normal';
+        var layer_JalanSurakarta_2 = new L.geoJson(json_JalanSurakarta_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_JalanSurakarta_2',
+            layerName: 'layer_JalanSurakarta_2',
+            pane: 'pane_JalanSurakarta_2',
+            onEachFeature: pop_JalanSurakarta_2,
+            style: style_JalanSurakarta_2_0,
+        });
+        bounds_group.addLayer(layer_JalanSurakarta_2);
+        map.addLayer(layer_JalanSurakarta_2);
+        function pop_TitikHotelSurakarta_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">alamat_gma</th>\
+                        <td class="visible-with-data" id="alamat_gma">' + (feature.properties['alamat_gma'] !== null ? autolinker.link(feature.properties['alamat_gma'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitude</th>\
+                        <td class="visible-with-data" id="Latitude">' + (feature.properties['Latitude'] !== null ? autolinker.link(feature.properties['Latitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitude</th>\
+                        <td class="visible-with-data" id="Longitude">' + (feature.properties['Longitude'] !== null ? autolinker.link(feature.properties['Longitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nama_Hotel</th>\
+                        <td class="visible-with-data" id="Nama_Hotel">' + (feature.properties['Nama_Hotel'] !== null ? autolinker.link(feature.properties['Nama_Hotel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating</th>\
+                        <td class="visible-with-data" id="Rating">' + (feature.properties['Rating'] !== null ? autolinker.link(feature.properties['Rating'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_X</th>\
+                        <td class="visible-with-data" id="Rating_X">' + (feature.properties['Rating_X'] !== null ? autolinker.link(feature.properties['Rating_X'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_Y</th>\
+                        <td class="visible-with-data" id="Rating_Y">' + (feature.properties['Rating_Y'] !== null ? autolinker.link(feature.properties['Rating_Y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Jumlah_Ula</th>\
+                        <td class="visible-with-data" id="Jumlah_Ula">' + (feature.properties['Jumlah_Ula'] !== null ? autolinker.link(feature.properties['Jumlah_Ula'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Kategori_H</th>\
+                        <td class="visible-with-data" id="Kategori_H">' + (feature.properties['Kategori_H'] !== null ? autolinker.link(feature.properties['Kategori_H'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Review_Sin</th>\
+                        <td class="visible-with-data" id="Review_Sin">' + (feature.properties['Review_Sin'] !== null ? autolinker.link(feature.properties['Review_Sin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Harga</th>\
+                        <td class="visible-with-data" id="Harga">' + (feature.properties['Harga'] !== null ? autolinker.link(feature.properties['Harga'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fasilitas</th>\
+                        <td class="visible-with-data" id="Fasilitas">' + (feature.properties['Fasilitas'] !== null ? autolinker.link(feature.properties['Fasilitas'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_TitikHotelSurakarta_3_0(feature) {
+            switch(String(feature.properties['Kategori_H'])) {
+                case 'Guest house':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hostel':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel bintang 1':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel bintang 2':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel bintang 3':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel bintang 4':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Hotel bintang 5':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Pondok':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Rumah wisata':
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_TitikHotelSurakarta_3',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/TitikHotelSurakarta_3.svg',
+            iconSize: [19.0, 19.0]
+        }),
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_TitikHotelSurakarta_3');
+        map.getPane('pane_TitikHotelSurakarta_3').style.zIndex = 403;
+        map.getPane('pane_TitikHotelSurakarta_3').style['mix-blend-mode'] = 'normal';
+        var layer_TitikHotelSurakarta_3 = new L.geoJson(json_TitikHotelSurakarta_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_TitikHotelSurakarta_3',
+            layerName: 'layer_TitikHotelSurakarta_3',
+            pane: 'pane_TitikHotelSurakarta_3',
+            onEachFeature: pop_TitikHotelSurakarta_3,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.marker(latlng, style_TitikHotelSurakarta_3_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_TitikHotelSurakarta_3);
+        map.addLayer(layer_TitikHotelSurakarta_3);
+        map.createPane('pane_HeatmapTitikHotelSurakarta_4');
+        map.getPane('pane_HeatmapTitikHotelSurakarta_4').style.zIndex = 404;
+        var img_HeatmapTitikHotelSurakarta_4 = 'data/HeatmapTitikHotelSurakarta_4.png';
+        var img_bounds_HeatmapTitikHotelSurakarta_4 = [[-7.598081919106284,110.7654298918435],[-7.532269971942666,110.86048748754641]];
+        var layer_HeatmapTitikHotelSurakarta_4 = new L.imageOverlay(img_HeatmapTitikHotelSurakarta_4,
+                                              img_bounds_HeatmapTitikHotelSurakarta_4,
+                                              {pane: 'pane_HeatmapTitikHotelSurakarta_4'});
+        bounds_group.addLayer(layer_HeatmapTitikHotelSurakarta_4);
+        map.addLayer(layer_HeatmapTitikHotelSurakarta_4);
+        function pop_CentroidsBuffertitikkotaasurakarta_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">alamat_gma</th>\
+                        <td class="visible-with-data" id="alamat_gma">' + (feature.properties['alamat_gma'] !== null ? autolinker.link(feature.properties['alamat_gma'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitude</th>\
+                        <td class="visible-with-data" id="Latitude">' + (feature.properties['Latitude'] !== null ? autolinker.link(feature.properties['Latitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitude</th>\
+                        <td class="visible-with-data" id="Longitude">' + (feature.properties['Longitude'] !== null ? autolinker.link(feature.properties['Longitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nama_Hotel</th>\
+                        <td class="visible-with-data" id="Nama_Hotel">' + (feature.properties['Nama_Hotel'] !== null ? autolinker.link(feature.properties['Nama_Hotel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating</th>\
+                        <td class="visible-with-data" id="Rating">' + (feature.properties['Rating'] !== null ? autolinker.link(feature.properties['Rating'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_X</th>\
+                        <td class="visible-with-data" id="Rating_X">' + (feature.properties['Rating_X'] !== null ? autolinker.link(feature.properties['Rating_X'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_Y</th>\
+                        <td class="visible-with-data" id="Rating_Y">' + (feature.properties['Rating_Y'] !== null ? autolinker.link(feature.properties['Rating_Y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Jumlah_Ula</th>\
+                        <td class="visible-with-data" id="Jumlah_Ula">' + (feature.properties['Jumlah_Ula'] !== null ? autolinker.link(feature.properties['Jumlah_Ula'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Kategori_H</th>\
+                        <td class="visible-with-data" id="Kategori_H">' + (feature.properties['Kategori_H'] !== null ? autolinker.link(feature.properties['Kategori_H'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Review_Sin</th>\
+                        <td class="visible-with-data" id="Review_Sin">' + (feature.properties['Review_Sin'] !== null ? autolinker.link(feature.properties['Review_Sin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Harga</th>\
+                        <td class="visible-with-data" id="Harga">' + (feature.properties['Harga'] !== null ? autolinker.link(feature.properties['Harga'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fasilitas</th>\
+                        <td class="visible-with-data" id="Fasilitas">' + (feature.properties['Fasilitas'] !== null ? autolinker.link(feature.properties['Fasilitas'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_CentroidsBuffertitikkotaasurakarta_5_0() {
+            return {
+                pane: 'pane_CentroidsBuffertitikkotaasurakarta_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(207,80,85,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_CentroidsBuffertitikkotaasurakarta_5');
+        map.getPane('pane_CentroidsBuffertitikkotaasurakarta_5').style.zIndex = 405;
+        map.getPane('pane_CentroidsBuffertitikkotaasurakarta_5').style['mix-blend-mode'] = 'normal';
+        var layer_CentroidsBuffertitikkotaasurakarta_5 = new L.geoJson(json_CentroidsBuffertitikkotaasurakarta_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_CentroidsBuffertitikkotaasurakarta_5',
+            layerName: 'layer_CentroidsBuffertitikkotaasurakarta_5',
+            pane: 'pane_CentroidsBuffertitikkotaasurakarta_5',
+            onEachFeature: pop_CentroidsBuffertitikkotaasurakarta_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_CentroidsBuffertitikkotaasurakarta_5_0(feature));
+            },
+        });
+        var cluster_CentroidsBuffertitikkotaasurakarta_5 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_CentroidsBuffertitikkotaasurakarta_5.addLayer(layer_CentroidsBuffertitikkotaasurakarta_5);
+
+        bounds_group.addLayer(layer_CentroidsBuffertitikkotaasurakarta_5);
+        cluster_CentroidsBuffertitikkotaasurakarta_5.addTo(map);
+        function pop_PusatKota_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">nama</th>\
+                        <td class="visible-with-data" id="nama">' + (feature.properties['nama'] !== null ? autolinker.link(feature.properties['nama'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_PusatKota_6_0() {
+            return {
+                pane: 'pane_PusatKota_6',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/PusatKota_6.svg',
+            iconSize: [15.2, 15.2]
+        }),
+                interactive: true,
+            }
+        }
+        map.createPane('pane_PusatKota_6');
+        map.getPane('pane_PusatKota_6').style.zIndex = 406;
+        map.getPane('pane_PusatKota_6').style['mix-blend-mode'] = 'normal';
+        var layer_PusatKota_6 = new L.geoJson(json_PusatKota_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PusatKota_6',
+            layerName: 'layer_PusatKota_6',
+            pane: 'pane_PusatKota_6',
+            onEachFeature: pop_PusatKota_6,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.marker(latlng, style_PusatKota_6_0(feature));
+            },
+        });
+        var cluster_PusatKota_6 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_PusatKota_6.addLayer(layer_PusatKota_6);
+
+        bounds_group.addLayer(layer_PusatKota_6);
+        cluster_PusatKota_6.addTo(map);
+        function pop_Jalantercepat_7(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">alamat_gma</th>\
+                        <td class="visible-with-data" id="alamat_gma">' + (feature.properties['alamat_gma'] !== null ? autolinker.link(feature.properties['alamat_gma'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitude</th>\
+                        <td class="visible-with-data" id="Latitude">' + (feature.properties['Latitude'] !== null ? autolinker.link(feature.properties['Latitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitude</th>\
+                        <td class="visible-with-data" id="Longitude">' + (feature.properties['Longitude'] !== null ? autolinker.link(feature.properties['Longitude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nama_Hotel</th>\
+                        <td class="visible-with-data" id="Nama_Hotel">' + (feature.properties['Nama_Hotel'] !== null ? autolinker.link(feature.properties['Nama_Hotel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating</th>\
+                        <td class="visible-with-data" id="Rating">' + (feature.properties['Rating'] !== null ? autolinker.link(feature.properties['Rating'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_X</th>\
+                        <td class="visible-with-data" id="Rating_X">' + (feature.properties['Rating_X'] !== null ? autolinker.link(feature.properties['Rating_X'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rating_Y</th>\
+                        <td class="visible-with-data" id="Rating_Y">' + (feature.properties['Rating_Y'] !== null ? autolinker.link(feature.properties['Rating_Y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Jumlah_Ula</th>\
+                        <td class="visible-with-data" id="Jumlah_Ula">' + (feature.properties['Jumlah_Ula'] !== null ? autolinker.link(feature.properties['Jumlah_Ula'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Kategori_H</th>\
+                        <td class="visible-with-data" id="Kategori_H">' + (feature.properties['Kategori_H'] !== null ? autolinker.link(feature.properties['Kategori_H'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Review_Sin</th>\
+                        <td class="visible-with-data" id="Review_Sin">' + (feature.properties['Review_Sin'] !== null ? autolinker.link(feature.properties['Review_Sin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Harga</th>\
+                        <td class="visible-with-data" id="Harga">' + (feature.properties['Harga'] !== null ? autolinker.link(feature.properties['Harga'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fasilitas</th>\
+                        <td class="visible-with-data" id="Fasilitas">' + (feature.properties['Fasilitas'] !== null ? autolinker.link(feature.properties['Fasilitas'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">start</th>\
+                        <td class="visible-with-data" id="start">' + (feature.properties['start'] !== null ? autolinker.link(feature.properties['start'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">end</th>\
+                        <td class="visible-with-data" id="end">' + (feature.properties['end'] !== null ? autolinker.link(feature.properties['end'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">cost</th>\
+                        <td class="visible-with-data" id="cost">' + (feature.properties['cost'] !== null ? autolinker.link(feature.properties['cost'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Jalantercepat_7_0() {
+            return {
+                pane: 'pane_Jalantercepat_7',
+                opacity: 1,
+                color: 'rgba(141,90,153,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Jalantercepat_7');
+        map.getPane('pane_Jalantercepat_7').style.zIndex = 407;
+        map.getPane('pane_Jalantercepat_7').style['mix-blend-mode'] = 'normal';
+        var layer_Jalantercepat_7 = new L.geoJson(json_Jalantercepat_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Jalantercepat_7',
+            layerName: 'layer_Jalantercepat_7',
+            pane: 'pane_Jalantercepat_7',
+            onEachFeature: pop_Jalantercepat_7,
+            style: style_Jalantercepat_7_0,
+        });
+        bounds_group.addLayer(layer_Jalantercepat_7);
+        map.addLayer(layer_Jalantercepat_7);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: '<img src="legend/Jalantercepat_7.png" /> Jalan tercepat', layer: layer_Jalantercepat_7},
+            {label: '<img src="legend/PusatKota_6.png" /> Pusat Kota', layer: cluster_PusatKota_6},
+            {label: '<img src="legend/CentroidsBuffertitikkotaasurakarta_5.png" /> Centroids Buffer titik kotaa surakarta', layer: cluster_CentroidsBuffertitikkotaasurakarta_5},
+            {label: "Heatmap Titik Hotel Surakarta", layer: layer_HeatmapTitikHotelSurakarta_4},
+            {label: 'Titik Hotel Surakarta<br /><table><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Guesthouse0.png" /></td><td>Guest house</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hostel1.png" /></td><td>Hostel</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotel2.png" /></td><td>Hotel</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotelbintang13.png" /></td><td>Hotel bintang 1</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotelbintang24.png" /></td><td>Hotel bintang 2</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotelbintang35.png" /></td><td>Hotel bintang 3</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotelbintang46.png" /></td><td>Hotel bintang 4</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Hotelbintang57.png" /></td><td>Hotel bintang 5</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Pondok8.png" /></td><td>Pondok</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_Rumahwisata9.png" /></td><td>Rumah wisata</td></tr><tr><td style="text-align: center;"><img src="legend/TitikHotelSurakarta_3_10.png" /></td><td></td></tr></table>', layer: layer_TitikHotelSurakarta_3},
+            {label: 'Jalan Surakarta<br /><table><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_JalanArteri0.png" /></td><td>Jalan Arteri</td></tr><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_JalanKolektor1.png" /></td><td>Jalan Kolektor</td></tr><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_JalanLain2.png" /></td><td>Jalan Lain</td></tr><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_JalanLokal3.png" /></td><td>Jalan Lokal</td></tr><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_JalanSetapak4.png" /></td><td>Jalan Setapak</td></tr><tr><td style="text-align: center;"><img src="legend/JalanSurakarta_2_5.png" /></td><td></td></tr></table>', layer: layer_JalanSurakarta_2},
+            {label: 'Administrasi Kota Surakarta<br /><table><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Banjarsari0.png" /></td><td>Banjarsari</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Colomadu1.png" /></td><td>Colomadu</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Gondangrejo2.png" /></td><td>Gondangrejo</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Grogol3.png" /></td><td>Grogol</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Jebres4.png" /></td><td>Jebres</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_Kartasura5.png" /></td><td>Kartasura</td></tr><tr><td style="text-align: center;"><img src="legend/AdministrasiKotaSurakarta_1_PasarKliwon6.png" /></td><td>Pasar Kliwon</td></tr></table>', layer: layer_AdministrasiKotaSurakarta_1},
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+        setBounds();
+        L.ImageOverlay.include({
+            getBounds: function () {
+                return this._bounds;
+            }
+        });
+        resetLabels([layer_AdministrasiKotaSurakarta_1]);
+        map.on("zoomend", function(){
+            resetLabels([layer_AdministrasiKotaSurakarta_1]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_AdministrasiKotaSurakarta_1]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_AdministrasiKotaSurakarta_1]);
+        });
+        </script>
+    </body>
+</html>
